@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 ###################################################
-# 2019-04-23 by Alec - auto.HU
+# 2019-04-29 by Alec - auto.HU
 #            by celeburdi - rtlmost.hu
 #            by McFly - logok
 ###################################################
-HOST_VERSION = "1.0"
+HOST_VERSION = "1.1"
 ###################################################
 # LOCAL import
 ###################################################
@@ -137,7 +137,7 @@ class AutosHU(CBaseHostClass):
                             
     def listMainMenu(self, cItem):
         printDBG("autohu.listMainMenu")
-        MAIN_CAT_TAB = [{'category':'list_main', 'title': 'Legfrissebb adások', 'tab_id': 'legfrissebb', 'desc': 'auto.HU - v' + HOST_VERSION + '\n\nLegfrissebb autós adások, műsorok.'},
+        MAIN_CAT_TAB = [{'category':'list_main', 'title': 'Legfrissebb adások', 'tab_id': 'legfrissebb', 'desc': 'auto.HU - v' + HOST_VERSION + '\n\nLegfrissebb autós adások, műsorok és információk gyűjtőhelye. Amennyiben egyes adások nem játszhatók le, akkor az adott műsor tartalomszolgáltatója megváltoztatta annak elérhetőségét. Ez nem az "auto.HU" lejátszó hibája!!!  Kérlek, hogy ezt vedd figyelembe...'},
                         {'category':'list_main', 'title': 'Adások innen-onnan', 'tab_id': 'veletlenszeru', 'desc': 'Autós műsorok véletlenszerű megjelenéssel (A betöltődés hosszabb ideig is eltarthat, max. 1-4 percig is. Várd meg míg betöltődnek az adások..)'},
                         {'category':'list_main', 'title': 'Autók típus szerint', 'tab_id': 'tipusok', 'desc': 'Autós műsorok az adott típusnak megfelelően. A következő verzióban kerül kidolgozásra, igény esetén!'},
                         {'category':'list_main', 'title': 'Autogram adásai', 'url': self.MAIN_URL_AUTOGRAM, 'tab_id': 'autogram', 'icon': self.DEFAULT_ICON_URL_AUTOGRAM, 'desc': 'Autogram autós műsor adásai.' },
@@ -331,15 +331,22 @@ class AutosHU(CBaseHostClass):
             return date_string
             
     def Garazs_data(self):
-        data = []
-        printDBG("Garazs listmainitem")
-        url_home = self.MAIN_URL_GARAZS_ADASOK
-        post_data = {'_kiemelt':'1', '_akcios':'', '_uj':'', '_nezet':'tablazat', '_random':'', '_tol':'0', '_orderby':'', '_where':" and ty.id not in ('LAPTIME','STORYKAT','TUNINGKAT','TESZTKAT')  and hsz.focusnr<'01' ", '_keres_txt':'', '_dblap':'150', 'lapozas':'1', '_sum':'421', '_mutat':'6' }
-        sts, data = self.cm.getPage(url_home, self.defaultParams, post_data)
-        if not sts: return data
-        data = self.cm.ph.getDataBeetwenMarkers(data, '<form id="lapozo"', '<input')[1]
-        data = self.cm.ph.getAllItemsBeetwenNodes(data, ('<div class=', '>', 'block'), ('<span class="date', '</span>'))
-        return data
+        printDBG("Garazs_data")
+        try:
+            data = []
+            printDBG("Garazs listmainitem")
+            uhe = self.MAIN_URL_GARAZS_ADASOK
+            ptdt = {'_kiemelt':'1', '_akcios':'', '_uj':'', '_nezet':'tablazat', '_random':'', '_tol':'0', '_orderby':'', '_where':" and ty.id not in ('LAPTIME','STORYKAT','TUNINGKAT','TESZTKAT')  and hsz.focusnr<'01' ", '_keres_txt':'', '_dblap':'150', 'lapozas':'1', '_sum':'421', '_mutat':'6' }
+            sts, data = self.cm.getPage(uhe, self.defaultParams, ptdt)
+            if not sts: return data
+            if len(data) == 0: return data
+            data = self.cm.ph.getDataBeetwenMarkers(data, '<form id="lapozo"', '<input')[1]
+            if len(data) == 0: return data
+            data = self.cm.ph.getAllItemsBeetwenNodes(data, ('<div class=', '>', 'block'), ('<span class="date', '</span>'))
+            return data
+        except Exception:
+            printExc()
+            return data
 
     def listMainItems(self, cItem, nextCategory):
         printDBG("autohu.listMainItems")
@@ -391,6 +398,7 @@ class AutosHU(CBaseHostClass):
             url = self.MAIN_URL_AUTOGRAM
             sts, data = self.cm.getPage(self.SUBCATS_URL.format(url), self.apiParams)
             if not sts: return params
+            if len(data) == 0: return params
             try:
                 data = json_loads(data)
                 subcats = data['program_subcats']
@@ -403,6 +411,7 @@ class AutosHU(CBaseHostClass):
                 return params
             sts, data = self.cm.getPage(self.EPISODES_URL.format(url, subcat, 100, 0), self.apiParams)
             if not sts: return params
+            if len(data) == 0: return params
             try:
                 data = json_loads(data)
                 for i in data:
@@ -417,7 +426,7 @@ class AutosHU(CBaseHostClass):
                     desc = ''
                     m = re.search(r'\d{4}-\d{2}-\d{2}',c['code'])
                     if m is not None:
-                        desctemp = self.getItemDatad(url)
+                        desctemp = self.malvad('1', '1', url, title)
                         desc = self.datum_honapos(m.group(0),'-') + '-i adás tartalma:\n\n' + desctemp
                     icon_tmp = _getImageExtKey(c['images'], 'vignette')
                     if icon_tmp is None:
@@ -447,8 +456,7 @@ class AutosHU(CBaseHostClass):
             title_tmp = self.cm.ph.getDataBeetwenMarkers(item, '<a href="', '">')[1]
             title = self.cm.ph.getSearchGroups(title_tmp, '''title="([^"]+?)"''')[0]
             if title == '': continue
-            #desc = musor_datuma + ' adás tartalma:  -  ' + self.cm.ph.getDataBeetwenMarkers(item, '<span class="lead"><p>', '</p>', False)[1].strip()
-            desctemp = self.getItemDatad(url)
+            desctemp = self.malvad('1', '2', url, title)
             desc = musor_datuma + '-i adás tartalma:\n\n' + desctemp
             params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'tab_id':tabID}
             break
@@ -460,7 +468,9 @@ class AutosHU(CBaseHostClass):
         url = self.MAIN_URL_SUPERCAR_ADASOK
         sts, data = self.getPage(url)
         if not sts: return params
+        if len(data) == 0: return params
         data = self.cm.ph.getDataBeetwenMarkers(data, '<div class="flex_column av_two_third', '<div class="flex_column av_one_third')[1]
+        if len(data) == 0: return params
         data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<a href=', '</a>')
         for item in data:
             if not 'av-masonry-1-item' in item: continue
@@ -472,7 +482,7 @@ class AutosHU(CBaseHostClass):
             if not title_tmp.endswith('.'):
                 title_tmp += '.'
             title = 'Supercar - ' + title_tmp
-            desctemp = self.getItemDatad(url)
+            desctemp = self.malvad('1', '3', url, title)
             desc = self.datum_honapos(title_tmp) + '-i adás tartalma:\n\n' + desctemp
             params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'tab_id':tabID}
             break
@@ -484,8 +494,11 @@ class AutosHU(CBaseHostClass):
         url = self.MAIN_URL_FORMA1
         sts, data = self.getPage(url)
         if not sts: return params
-        data = self.cm.ph.getDataBeetwenMarkers(data, '<ul class="nav-child unstyled small">', '</ul>')[1]
+        if len(data) == 0: return params
+        data = self.cm.ph.getDataBeetwenMarkers(data, '<a  href="/2011"', '</ul>')[1]
+        if len(data) == 0: return params
         data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<li', '</li>')
+        if len(data) == 0: return params
         for item in reversed(data):
             url = self.cm.ph.getSearchGroups(item, 'href=[\'"]([^"^\']+?)[\'"]')[0]
             if url.startswith('/'):
@@ -498,21 +511,25 @@ class AutosHU(CBaseHostClass):
         title_citem = title
         sts, data = self.getPage(url_citem)
         if not sts: return params
-        data = self.cm.ph.getDataBeetwenMarkers(data, '<div class="catItemView groupLeading"', '<div class="container-fluid" id="fav-mainbottomwrap">')[1]
+        if len(data) == 0: return params
+        data = self.cm.ph.getDataBeetwenMarkers(data, '<div id="k2Container', '</section>')[1]
+        if len(data) == 0: return params
         data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<span class="catItemImage"', '</span>')
+        if len(data) == 0: return params
         for item in data:
             url = self.cm.ph.getSearchGroups(item, 'href=[\'"]([^"^\']+?)[\'"]')[0]
             if url.startswith('/'):
                 url = self.MAIN_URL_FORMA1 + url
             if not self.cm.isValidUrl(url):
                 continue
-            if not url_citem in url: continue
+            #if not url_citem in url: continue
             if not title_citem+'-r' in url: continue
             icon = self.cm.ph.getSearchGroups(item, '''src=['"]([^"^']+?)['"]''')[0]
             if icon.startswith('/'):
                 icon = self.MAIN_URL_FORMA1 + icon
             title = 'Forma1 - ' + self.ekezetes_atalakitas(self.cm.ph.getSearchGroups(item, '''title="([^"]+?)"''')[0])
-            desc = title
+            desctemp = self.malvad('1', '4', url, title)
+            desc = title + '\n\n' + desctemp
             params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'tab_id':tabID}
             break
         return params
@@ -578,7 +595,7 @@ class AutosHU(CBaseHostClass):
                             desc = ''
                             m = re.search(r'\d{4}-\d{2}-\d{2}',c['code'])
                             if m is not None:
-                                desctemp = self.getItemDatad(url_ep)
+                                desctemp = self.malvad('1', '1', url_ep, title)
                                 desc = self.datum_honapos(m.group(0),'-') + '-i adás tartalma:\n\n' + desctemp
                             icon_tmp = _getImageExtKey(c['images'], 'vignette')
                             if icon_tmp is None:
@@ -615,8 +632,7 @@ class AutosHU(CBaseHostClass):
             title_tmp = self.cm.ph.getDataBeetwenMarkers(item, '<a href="', '">')[1]
             title = self.cm.ph.getSearchGroups(title_tmp, '''title="([^"]+?)"''')[0]
             if title == '': continue
-            #desc = musor_datuma + ' adás tartalma:  -  ' + self.cm.ph.getDataBeetwenMarkers(item, '<span class="lead"><p>', '</p>', False)[1].strip()
-            desctemp = self.getItemDatad(url)
+            desctemp = self.malvad('1', '2', url, title)
             desc = musor_datuma + '-i adás tartalma:\n\n' + desctemp
             params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'tab_id':tabID}
             paramsList.append(params)
@@ -634,6 +650,7 @@ class AutosHU(CBaseHostClass):
         if not sts: return paramsList
         if len(data) == 0: return paramsList
         data = self.cm.ph.getDataBeetwenMarkers(data, '<div class="flex_column av_two_third', '<div class="flex_column av_one_third')[1]
+        if len(data) == 0: return paramsList
         data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<a href=', '</a>')
         if len(data) == 0: return paramsList
         i = 1
@@ -647,7 +664,7 @@ class AutosHU(CBaseHostClass):
             if not title_tmp.endswith('.'):
                 title_tmp += '.'
             title = 'Supercar - ' + title_tmp
-            desctemp = self.getItemDatad(url)
+            desctemp = self.malvad('1', '3', url, title)
             desc = self.datum_honapos(title_tmp) + '-i adás tartalma:\n\n' + desctemp
             params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'tab_id':tabID}
             paramsList.append(params)
@@ -666,6 +683,7 @@ class AutosHU(CBaseHostClass):
             url = self.MAIN_URL_AUTOGRAM
             sts, data = self.cm.getPage(self.SUBCATS_URL.format(url), self.apiParams)
             if not sts: return
+            if len(data) == 0: return
             try:
                 data = json_loads(data)
                 subcats = data['program_subcats']
@@ -715,7 +733,9 @@ class AutosHU(CBaseHostClass):
         url = cItem['url']
         sts, data = self.getPage(url)
         if not sts: return
+        if len(data) == 0: return
         data = self.cm.ph.getDataBeetwenMarkers(data, "<h3 class='widgettitle'>Archív</h3><ul>", "</ul>")[1]
+        if len(data) == 0: return
         data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<li', '</li>')
         for item in data:
             url = self.getFullUrl(self.cm.ph.getSearchGroups(item, 'href=[\'"]([^"^\']+?)[\'"]')[0])
@@ -734,7 +754,9 @@ class AutosHU(CBaseHostClass):
         url = cItem['url']
         sts, data = self.getPage(url)
         if not sts: return
-        data = self.cm.ph.getDataBeetwenMarkers(data, '<ul class="nav-child unstyled small">', '</ul>')[1]
+        if len(data) == 0: return
+        data = self.cm.ph.getDataBeetwenMarkers(data, '<a  href="/2011"', '</ul>')[1]
+        if len(data) == 0: return
         data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<li', '</li>')
         i = 1
         for item in reversed(data):
@@ -788,6 +810,7 @@ class AutosHU(CBaseHostClass):
         subcat = cItem['subcat']
         sts, data = self.cm.getPage(self.EPISODES_URL.format(url, subcat, 100, 0), self.apiParams)
         if not sts: return
+        if len(data) == 0: return
         try:
             data = json_loads(data)
             for i in data:
@@ -803,7 +826,7 @@ class AutosHU(CBaseHostClass):
                 desc = ''
                 m = re.search(r'\d{4}-\d{2}-\d{2}',c['code'])
                 if m is not None:
-                    desctemp = self.getItemDatad(url)
+                    desctemp = self.malvad('1', '1', url, title)
                     desc = self.datum_honapos(m.group(0),'-') + '-i adás tartalma:\n\n' + desctemp
                 icon_tmp = _getImageExtKey(c['images'], 'vignette')
                 params = dict(cItem)
@@ -834,8 +857,7 @@ class AutosHU(CBaseHostClass):
             title_tmp = self.cm.ph.getDataBeetwenMarkers(item, '<a href="', '">')[1]
             title = self.cm.ph.getSearchGroups(title_tmp, '''title="([^"]+?)"''')[0]
             if title == '': continue
-            #desc = musor_datuma + ' adás tartalma:  -  ' + self.cm.ph.getDataBeetwenMarkers(item, '<span class="lead"><p>', '</p>', False)[1].strip()
-            desctemp = self.getItemDatad(url)
+            desctemp = self.malvad('1', '2', url, title)
             desc = musor_datuma + '-i adás tartalma:\n\n' + desctemp
             params = dict(cItem)
             params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'tab_id':tabID}
@@ -848,7 +870,9 @@ class AutosHU(CBaseHostClass):
         url = self.MAIN_URL_SUPERCAR_ADASOK
         sts, data = self.getPage(url)
         if not sts: return
+        if len(data) == 0: return
         data = self.cm.ph.getDataBeetwenMarkers(data, '<div class="flex_column av_two_third', '<div class="flex_column av_one_third')[1]
+        if len(data) == 0: return
         data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<a href=', '</a>')
         for item in data:
             if not 'av-masonry-1-item' in item: continue
@@ -861,7 +885,7 @@ class AutosHU(CBaseHostClass):
             if not title_tmp.endswith('.'):
                 title_tmp += '.'
             title = 'Supercar - ' + title_tmp
-            desctemp = self.getItemDatad(url)
+            desctemp = self.malvad('1', '3', url, title)
             desc = self.datum_honapos(title_tmp) + '-i adás tartalma:\n\n' + desctemp
             params = dict(cItem)
             params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'tab_id':tabID}
@@ -873,21 +897,24 @@ class AutosHU(CBaseHostClass):
         title_citem = cItem['title']
         sts, data = self.getPage(url_citem)
         if not sts: return
-        data = self.cm.ph.getDataBeetwenMarkers(data, '<div class="catItemView groupLeading"', '<div class="container-fluid" id="fav-mainbottomwrap">')[1]
+        data = self.cm.ph.getDataBeetwenMarkers(data, '<div id="k2Container', '</section>')[1]
+        if len(data) == 0: return
         data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<span class="catItemImage"', '</span>')
+        if len(data) == 0: return
         for item in data:
             url = self.cm.ph.getSearchGroups(item, 'href=[\'"]([^"^\']+?)[\'"]')[0]
             if url.startswith('/'):
                 url = self.MAIN_URL_FORMA1 + url
             if not self.cm.isValidUrl(url):
                 continue
-            if not url_citem in url: continue
+            #if not url_citem in url: continue
             if not title_citem+'-r' in url: continue
             icon = self.cm.ph.getSearchGroups(item, '''src=['"]([^"^']+?)['"]''')[0]
             if icon.startswith('/'):
                 icon = self.MAIN_URL_FORMA1 + icon
             title = self.ekezetes_atalakitas(self.cm.ph.getSearchGroups(item, '''title="([^"]+?)"''')[0])
-            desc = title
+            desctemp = self.malvad('1', '4', url, title)
+            desc = title + '\n\n' + desctemp
             params = dict(cItem)
             params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'tab_id':tabID}
             self.addVideo(params)
@@ -898,6 +925,7 @@ class AutosHU(CBaseHostClass):
         if not sts: return
         if len(data) == '': return
         data = self.cm.ph.getDataBeetwenMarkers(data, '<div class="F1-RaceSelectorList"', '<div class="F1-raceSelectorMobil">')[1]
+        if len(data) == 0: return
         data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<a href="javascript:void(0);"', '</a>')
         for item in data:
             url = self.cm.ph.getSearchGroups(item, '''data-target_url=[\'"]([^"^\']+?)[\'"]''')[0]
@@ -980,17 +1008,30 @@ class AutosHU(CBaseHostClass):
         try:
             tabID = cItem.get('tab_id', '')
             if tabID == 'autogram':
-                return self.Autogram_getLinksForVideo(cItem)
+                nez = self.Autogram_getLinksForVideo(cItem)
+                if len(nez) > 0:
+                    self.suuim('2', cItem['url'])
+                return nez
             elif tabID == 'garazs':
-                return self.Garazs_getLinksForVideo(cItem)
+                nez = self.Garazs_getLinksForVideo(cItem)
+                if len(nez) > 0:
+                    self.suuim('2', cItem['url'])
+                return nez
             elif tabID == 'supercar':
-                return self.Supercar_getLinksForVideo(cItem)
+                nez = self.Supercar_getLinksForVideo(cItem)
+                if len(nez) > 0:
+                    self.suuim('2', cItem['url'])
+                return nez
             elif tabID == 'forma1':
-                return self.Forma1_getLinksForVideo(cItem)
+                nez = self.Forma1_getLinksForVideo(cItem)
+                if len(nez) > 0:
+                    self.suuim('2', cItem['url'])
+                return nez
             else:
                 return []
         except Exception:
             printExc()
+        
             
     def Autogram_getLinksForVideo(self, cItem):
         url = cItem['url']
@@ -998,6 +1039,7 @@ class AutosHU(CBaseHostClass):
         if not self.tryTologin(): return videoUrls
         sts, data = self.cm.getPage(self.VIDEO_URL.format(url), self.apiParams)
         if not sts: return videoUrls
+        if len(data) == 0: return videoUrls
         try:
             data = json_loads(data)
             assets = data['clips'][0].get('assets')
@@ -1027,7 +1069,9 @@ class AutosHU(CBaseHostClass):
         url = cItem['url']
         sts, data = self.getPage(url)
         if not sts: return []
+        if len(data) == 0: return []
         data = self.cm.ph.getDataBeetwenMarkers(data, '<span class="video-holder', '</span>')[1]
+        if len(data) == 0: return []
         url = self.cm.ph.getSearchGroups(data, '''src=['"]([^"^']+?)['"]''')[0]
         if zlib.decompress(base64.b64decode('eJzLKCkpKLbS1y8vL9erzC8tKU1K1UvOzwUAae8I2Q==')) in url:
             if 1 == self.up.checkHostSupport(url):
@@ -1043,8 +1087,11 @@ class AutosHU(CBaseHostClass):
         url = cItem['url']
         sts, data = self.getPage(url)
         if not sts: return []
+        if len(data) == 0: return []
         data = self.cm.ph.getDataBeetwenMarkers(data, '<video', '</video>')[1]
+        if len(data) == 0: return []
         data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<source ', '>', False, False)
+        if data == '': return []
         for item in data:
             url = self.cm.ph.getSearchGroups(item, '''src=['"]([^"^']+?)['"]''')[0]
             tmp_url_list = url.split('?')
@@ -1065,9 +1112,8 @@ class AutosHU(CBaseHostClass):
         url = cItem['url']
         sts, data_tmp = self.getPage(url)
         if not sts: return []
+        if data_tmp == '': return []
         data = self.cm.ph.getDataBeetwenMarkers(data_tmp, '<a id="anchor-futam', '</iframe>')[1]
-        if data == '':
-            data = self.cm.ph.getDataBeetwenMarkers(data_tmp, '<div class="itemFullText', '</iframe>')[1]
         if data == '': return []
         url = self.cm.ph.getSearchGroups(data, '''src=['"]([^"^']+?)['"]''')[0]
         if url.startswith('//'):
@@ -1079,6 +1125,7 @@ class AutosHU(CBaseHostClass):
         urlParams = {'header':HTTP_HEADER}
         sts, data = self.cm.getPage(baseUrl, urlParams)
         if not sts: return []
+        if data == '': return []
         cUrl = self.cm.meta['url']
         f = ph.find(data, 'player?', '&', flags=0)[1]
         if not f: f = cUrl.split('player?', 1)[-1].rsplit('&', 1)[0]
@@ -1087,10 +1134,13 @@ class AutosHU(CBaseHostClass):
         url = '/videaplayer_get_xml.php?{0}&start=0&enablesnapshot=0&platform=desktop&referrer={1}'.format(f, urllib.quote(baseUrl))
         sts, data = self.cm.getPage(self.cm.getFullUrl(url, cUrl))
         if not sts: return []
+        if data == '': return []
         meta = {'Referer':cUrl, 'Origin':urlparser.getDomain(baseUrl, False)[:-1], 'User-Agent':HTTP_HEADER['User-Agent']}
         hlsMeta = MergeDicts(meta, {'iptv_proto':'m3u8'})
         data = ph.find(data, ('<video_sources', '>'), '</video_sources>', flags=0)[1]
+        if data == '': return []
         data = ph.findall(data, ('<video_source', '>'), '</video_source>')
+        if data == '': return []
         for item in data:
             url = self.cm.getFullUrl(ph.clean_html(item), cUrl)
             if not url: continue
@@ -1170,16 +1220,31 @@ class AutosHU(CBaseHostClass):
            printExc()
            self.sessionEx.open(MessageBox, _('Login failed.'), type = MessageBox.TYPE_ERROR, timeout = 10)
         return False
-        
-    def getItemDatad(self, i_u=''):
+            
+    def suuim(self, i_md='', i_u=''):
+        uhe = zlib.decompress(base64.b64decode('eJzLKCkpsNLXLy8v10vLTK9MzclNrSpJLUkt1sso1c9IzanUL0vMS6xKLC3J1yvIKAAAsfsSRw=='))
+        pstd = {'md':i_md, 'rl':i_u }
+        try:
+            if i_md != '' and i_u != '':
+                sts, data = self.cm.getPage(uhe, self.defaultParams, pstd)
+            return
+        except Exception:
+            return
+            
+    def malvad(self, i_md='', i_tp='', i_u='', i_tl=''):
         t_s = ''
         t_le_a = ''
-        t_s_temp = ''
+        temp_le = ''
+        temp_h = ''
+        temp_n = ''
+        uhe = zlib.decompress(base64.b64decode('eJzLKCkpsNLXLy8v10vLTK9MzclNrSpJLUkt1sso1c9IzanUL0vMS6xKLC3J1yvIKAAAsfsSRw=='))
+        pstd = {'md':i_md, 'tp':i_tp, 'rl':i_u, 'tl':i_tl }
         try:
             sts, data = self.getPage(zlib.decompress(base64.b64decode('eJzLKCkpsNLXLy8v10vLTK9MzclNrSpJLUkt1ssoBQCbCwro')))
             if not sts: return t_s
             if len(data) == 0: return t_s
             data = self.cm.ph.getDataBeetwenMarkers(data, '<div id="div-fo-div', '</div>')[1]
+            if len(data) == 0: return t_s
             data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<input', '/>')
             if len(data) == 0: return t_s
             if 'ahufh1' not in data[0]: return t_s
@@ -1189,27 +1254,33 @@ class AutosHU(CBaseHostClass):
                 return t_le_a
         except Exception:
             return t_s
-        try:            
-            sts, data = self.getPage(zlib.decompress(base64.b64decode(self.cm.ph.getSearchGroups(data[0], 'value=[\'"]([^"^\']+?)[\'"]')[0])))
-            if not sts: return t_s
-            if len(data) == 0: return t_s
-            data = self.cm.ph.getDataBeetwenMarkers(data, '<div id="div_a_div', '</div>')[1]
-            data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<input', '/>')
-            if len(data) == 0: return t_s
-            for item in data:
-                t_i = zlib.decompress(base64.b64decode(self.cm.ph.getSearchGroups(item, 'id=[\'"]([^"^\']+?)[\'"]')[0]))
-                if t_i == i_u:
-                    t_s_temp = zlib.decompress(base64.b64decode(self.cm.ph.getSearchGroups(item, 'value=[\'"]([^"^\']+?)[\'"]')[0]))
-                    t_s_temp = t_s_temp.replace('A_', '')
-                    t_s_temp = t_s_temp.replace('_A', '')
-                    break
-            if t_s_temp == '':
-                t_s = t_le_a
-            else:
-                t_s = '- ' + t_s_temp
+        try:
+            if i_md != '' and i_tp != '' and i_u != '' and i_tl != '':
+                sts, data = self.cm.getPage(uhe, self.defaultParams, pstd)
+                if not sts: return t_s
+                if len(data) == 0: return t_s
+                data = self.cm.ph.getDataBeetwenMarkers(data, '<div id="div_a_div', '</div>')[1]
+                if len(data) == 0: return t_s
+                data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<input', '/>')
+                if len(data) == 0: return t_s
+                for item in data:
+                    t_i = self.cm.ph.getSearchGroups(item, 'id=[\'"]([^"^\']+?)[\'"]')[0]
+                    if t_i == 'il':
+                        temp_le = self.cm.ph.getSearchGroups(item, 'value=[\'"]([^"^\']+?)[\'"]')[0]
+                        temp_le = temp_le.replace('A_', '')
+                        temp_le = temp_le.replace('_A', '')
+                    elif t_i == 'ih':
+                        temp_h = self.cm.ph.getSearchGroups(item, 'value=[\'"]([^"^\']+?)[\'"]')[0] 
+                    elif t_i == 'in':
+                        temp_n = self.cm.ph.getSearchGroups(item, 'value=[\'"]([^"^\']+?)[\'"]')[0]
+                if temp_le == '-' or temp_le == '':
+                    t_s = t_le_a
+                else:
+                    t_s = '- ' + temp_le + '\n\nA műsor hossza:  ' + temp_h + '  |  ' + temp_n
+            return t_s
         except Exception:
             return t_le_a
-        return t_s
+        return t_s            
         
     def listSearchResult(self, cItem, searchPattern, searchType):
         printDBG("listSearchResult cItem[%s], searchPattern[%s] searchType[%s]" % (cItem, searchPattern, searchType))
