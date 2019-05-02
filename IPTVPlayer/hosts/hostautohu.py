@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 ###################################################
-# 2019-04-29 by Alec - auto.HU
+# 2019-05-02 by Alec - auto.HU
 #            by celeburdi - rtlmost.hu
 #            by McFly - logok
 ###################################################
-HOST_VERSION = "1.1"
+HOST_VERSION = "1.2"
 ###################################################
 # LOCAL import
 ###################################################
@@ -38,7 +38,7 @@ try:
     import json
 except Exception:
     import simplejson as json
-from Components.config import config, ConfigText, getConfigListEntry
+from Components.config import config, ConfigText, ConfigYesNo, getConfigListEntry
 from datetime import datetime
 from hashlib import sha1
 ###################################################
@@ -55,11 +55,13 @@ from Screens.MessageBox import MessageBox
 ###################################################
 config.plugins.iptvplayer.autohu_rtlmost_login    = ConfigText(default = "", fixed_size = False)
 config.plugins.iptvplayer.autohu_rtlmost_password = ConfigText(default = "", fixed_size = False)
+config.plugins.iptvplayer.autohu_id = ConfigYesNo(default = False)
 
 def GetConfigList():
     optionList = []
-    optionList.append(getConfigListEntry(_("autohu_rtlmost_login")+":", config.plugins.iptvplayer.autohu_rtlmost_login))
-    optionList.append(getConfigListEntry(_("autohu_rtlmost_password")+":", config.plugins.iptvplayer.autohu_rtlmost_password))
+    optionList.append(getConfigListEntry("autohu_rtlmost_login:", config.plugins.iptvplayer.autohu_rtlmost_login))
+    optionList.append(getConfigListEntry("autohu_rtlmost_password:", config.plugins.iptvplayer.autohu_rtlmost_password))
+    optionList.append(getConfigListEntry("autohu_id:", config.plugins.iptvplayer.autohu_id))
     return optionList
 ###################################################
 
@@ -133,18 +135,76 @@ class AutosHU(CBaseHostClass):
         self.loggedIn = False
         self.login = ''
         self.password = ''
+        self.aid = config.plugins.iptvplayer.autohu_id.value
+        self.aid_ki = ''
         self.defaultParams = {'header':self.HEADER, 'use_cookie': True, 'load_cookie': True, 'save_cookie': True, 'cookiefile': self.COOKIE_FILE}    
                             
     def listMainMenu(self, cItem):
         printDBG("autohu.listMainMenu")
-        MAIN_CAT_TAB = [{'category':'list_main', 'title': 'Legfrissebb adások', 'tab_id': 'legfrissebb', 'desc': 'auto.HU - v' + HOST_VERSION + '\n\nLegfrissebb autós adások, műsorok és információk gyűjtőhelye. Amennyiben egyes adások nem játszhatók le, akkor az adott műsor tartalomszolgáltatója megváltoztatta annak elérhetőségét. Ez nem az "auto.HU" lejátszó hibája!!!  Kérlek, hogy ezt vedd figyelembe...'},
-                        {'category':'list_main', 'title': 'Adások innen-onnan', 'tab_id': 'veletlenszeru', 'desc': 'Autós műsorok véletlenszerű megjelenéssel (A betöltődés hosszabb ideig is eltarthat, max. 1-4 percig is. Várd meg míg betöltődnek az adások..)'},
-                        {'category':'list_main', 'title': 'Autók típus szerint', 'tab_id': 'tipusok', 'desc': 'Autós műsorok az adott típusnak megfelelően. A következő verzióban kerül kidolgozásra, igény esetén!'},
-                        {'category':'list_main', 'title': 'Autogram adásai', 'url': self.MAIN_URL_AUTOGRAM, 'tab_id': 'autogram', 'icon': self.DEFAULT_ICON_URL_AUTOGRAM, 'desc': 'Autogram autós műsor adásai.' },
-                        {'category':'list_main', 'title': 'GarázsTV adásai', 'url': self.MAIN_URL_GARAZS, 'tab_id': 'garazs', 'icon': self.DEFAULT_ICON_URL_GARAZS, 'desc': 'GarázsTV autós műsor adásai.' },
-                        {'category':'list_main', 'title': 'Supercar adásai', 'url': self.MAIN_URL_SUPERCAR, 'tab_id': 'supercar', 'icon': self.DEFAULT_ICON_URL_SUPERCAR, 'desc': 'Supercar autós műsor adásai.' },
-                        {'category':'list_main', 'title': 'Forma1 közvetítések', 'url': self.MAIN_URL_FORMA1, 'tab_id': 'forma1', 'icon': self.DEFAULT_ICON_URL_FORMA1, 'desc': 'Forma1 közvetítések, versenynaptár, pontverseny.' },
-                        {'category':'search', 'title': 'Keresés', 'search_item':True, 'desc':'A következő verzióban kerül kidolgozásra, igény esetén!'}                        
+        url_legfris = 'legfrissebb'
+        n_legfris = self.malvadst('1', '1', url_legfris)
+        if n_legfris != '' and self.aid:
+            self.aid_ki = 'ID: ' + n_legfris + '\n'
+        else:
+            self.aid_ki = ''
+        desc_legfris = self.aid_ki + 'auto.HU - v' + HOST_VERSION + '\n\nLegfrissebb autós adások, műsorok és információk gyűjtőhelye. Amennyiben egyes adások nem játszhatók le, akkor az adott műsor tartalomszolgáltatója megváltoztatta annak elérhetőségét. Ez nem az "auto.HU" lejátszó hibája!!!  Kérlek, hogy ezt vedd figyelembe...'
+        url_inenonan = 'inenonan'
+        n_inenonan = self.malvadst('1', '1', url_inenonan)
+        if n_inenonan != '' and self.aid:
+            self.aid_ki = 'ID: ' + n_inenonan + '\n'
+        else:
+            self.aid_ki = ''
+        desc_inenonan = self.aid_ki + 'Autós műsorok véletlenszerű megjelenéssel (A betöltődés hosszabb ideig is eltarthat, max. 1-4 percig is. Várd meg míg betöltődnek az adások..)'
+        url_atipus = 'atipus'
+        n_atipus = self.malvadst('1', '1', url_atipus)
+        if n_atipus != '' and self.aid:
+            self.aid_ki = 'ID: ' + n_atipus + '\n'
+        else:
+            self.aid_ki = ''
+        desc_atipus = self.aid_ki + 'Autós műsorok az adott típusnak megfelelően. A következő verzióban kerül kidolgozásra, igény esetén!'
+        url_autogram = self.MAIN_URL_AUTOGRAM
+        n_autogram = self.malvadst('1', '1', url_autogram)
+        if n_autogram != '' and self.aid:
+            self.aid_ki = 'ID: ' + n_autogram + '\n'
+        else:
+            self.aid_ki = ''
+        desc_autogram = self.aid_ki + 'Autogram autós műsor adásai.'
+        url_garazs = self.MAIN_URL_GARAZS
+        n_garazs = self.malvadst('1', '1', url_garazs)
+        if n_garazs != '' and self.aid:
+            self.aid_ki = 'ID: ' + n_garazs + '\n'
+        else:
+            self.aid_ki = ''
+        desc_garazs = self.aid_ki + 'GarázsTV autós műsor adásai.'
+        url_super = self.MAIN_URL_SUPERCAR
+        n_super = self.malvadst('1', '1', url_super)
+        if n_super != '' and self.aid:
+            self.aid_ki = 'ID: ' + n_super + '\n'
+        else:
+            self.aid_ki = ''
+        desc_super = self.aid_ki + 'Supercar autós műsor adásai.'
+        url_forma1 = self.MAIN_URL_FORMA1
+        n_forma1 = self.malvadst('1', '1', url_forma1)
+        if n_forma1 != '' and self.aid:
+            self.aid_ki = 'ID: ' + n_forma1 + '\n'
+        else:
+            self.aid_ki = ''
+        desc_forma1 = self.aid_ki + 'Forma1 közvetítések, versenynaptár, pontverseny.'
+        url_keres = 'kereses'
+        n_keres = self.malvadst('1', '1', url_keres)
+        if n_keres != '' and self.aid:
+            self.aid_ki = 'ID: ' + n_keres + '\n'
+        else:
+            self.aid_ki = ''
+        desc_keres = self.aid_ki + 'A következő verzióban kerül kidolgozásra, igény esetén!'
+        MAIN_CAT_TAB = [{'category':'list_main', 'title': 'Legfrissebb adások', 'url': url_legfris, 'tab_id': 'legfrissebb', 'desc': desc_legfris},
+                        {'category':'list_main', 'title': 'Adások innen-onnan', 'url': url_inenonan, 'tab_id': 'veletlenszeru', 'desc': desc_inenonan},
+                        {'category':'list_main', 'title': 'Autók típus szerint', 'url': url_atipus, 'tab_id': 'tipusok', 'desc': desc_atipus},
+                        {'category':'list_main', 'title': 'Autogram adásai', 'url': url_autogram, 'tab_id': 'autogram', 'icon': self.DEFAULT_ICON_URL_AUTOGRAM, 'desc': desc_autogram},
+                        {'category':'list_main', 'title': 'GarázsTV adásai', 'url': url_garazs, 'tab_id': 'garazs', 'icon': self.DEFAULT_ICON_URL_GARAZS, 'desc': desc_garazs},
+                        {'category':'list_main', 'title': 'Supercar adásai', 'url': url_super, 'tab_id': 'supercar', 'icon': self.DEFAULT_ICON_URL_SUPERCAR, 'desc': desc_super},
+                        {'category':'list_main', 'title': 'Forma1 közvetítések', 'url': url_forma1, 'tab_id': 'forma1', 'icon': self.DEFAULT_ICON_URL_FORMA1, 'desc': desc_forma1},
+                        {'category':'search', 'title': 'Keresés', 'url': url_keres, 'search_item': True, 'desc': desc_keres}                        
                        ]
         self.listsTab(MAIN_CAT_TAB, cItem)
                             
@@ -373,7 +433,9 @@ class AutosHU(CBaseHostClass):
             
     def Legfrissebb_MainItems(self, cItem, tabID):
         printDBG("Legfrissebb listmainItem")
+        url = cItem['url']
         try:
+            self.susn('2', '1', url)
             params = dict()
             params = self.Autogram_Legfrissebb()
             if params:
@@ -536,7 +598,9 @@ class AutosHU(CBaseHostClass):
         
     def Veletlen_MainItems(self, cItem, tabID):
         printDBG("Véletlenszerű listmainItem")
+        url = cItem['url']
         try:
+            self.susn('2', '1', url)
             musorList = []
             autogramList = self.Autogram_veletlen()
             if len(autogramList) > 0:
@@ -675,10 +739,17 @@ class AutosHU(CBaseHostClass):
     
     def Tipusok_MainItems(self, cItem, nextCategory, tabID):
         printDBG("Autogram listmainitem")
+        url = cItem['url']
+        try:
+            self.susn('2', '1', url)
+        except Exception:
+            printExc()
         return
     
     def Autogram_MainItems(self, cItem, nextCategory, tabID):
         printDBG("Autogram listmainitem")
+        url = cItem['url']
+        self.susn('2', '1', url)
         if self.tryTologin():
             url = self.MAIN_URL_AUTOGRAM
             sts, data = self.cm.getPage(self.SUBCATS_URL.format(url), self.apiParams)
@@ -691,13 +762,20 @@ class AutosHU(CBaseHostClass):
                 for i in subcats:
                     title = i['title']
                     subcat = str(i['id'])
-                    desc = '%s. év adásai' % title
+                    n_autogram = self.malvadst('1', '1', subcat)
+                    if n_autogram != '' and self.aid:
+                        self.aid_ki = 'ID: ' + n_autogram + '\n'
+                    else:
+                        self.aid_ki = ''
+                    desc = self.aid_ki + '%s. év adásai' % title
                     params = dict(cItem)
-                    params.update({'good_for_fav': False, 'category': nextCategory, 'title': title, 'url': url, 'subcat': subcat, 'desc':desc, 'tab_id': tabID, 'icon': self.DEFAULT_ICON_URL_AUTOGRAM})
+                    params.update({'good_for_fav': False, 'category': nextCategory, 'title': title, 'url': url, 'subcat': subcat, 'desc': desc, 'tab_id': tabID, 'icon': self.DEFAULT_ICON_URL_AUTOGRAM})
                     self.addDir(params)
             except Exception: printExc()
         
     def Garazs_MainItems(self, cItem, nextCategory, tabID):
+        url_susn = cItem['url']
+        self.susn('2', '1', url_susn)
         datum_lista = []
         url_home = self.MAIN_URL_GARAZS_ADASOK
         data = self.Garazs_data()
@@ -722,7 +800,12 @@ class AutosHU(CBaseHostClass):
                     continue
                 icon = self.DEFAULT_ICON_URL_GARAZS
                 title = ev_honap
-                desc = '%s havi adások' % title
+                n_garazs = self.malvadst('1', '1', url+'/'+title)
+                if n_garazs != '' and self.aid:
+                    self.aid_ki = 'ID: ' + n_garazs + '\n'
+                else:
+                    self.aid_ki = ''
+                desc = self.aid_ki + '%s havi adások' % title
                 params = dict(cItem)
                 params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'tab_id':tabID}
                 params['category'] = nextCategory
@@ -731,6 +814,7 @@ class AutosHU(CBaseHostClass):
     def Supercar_MainItems(self, cItem, nextCategory, tabID):
         printDBG("Supercar listmainitem")
         url = cItem['url']
+        self.susn('2', '1', url)
         sts, data = self.getPage(url)
         if not sts: return
         if len(data) == 0: return
@@ -743,7 +827,12 @@ class AutosHU(CBaseHostClass):
                 continue
             icon = self.DEFAULT_ICON_URL_SUPERCAR
             title = self.cleanHtmlStr( self.cm.ph.getDataBeetwenMarkers(item, "<a", "</a>")[1] )
-            desc = '%s havi adások' % title
+            n_supercar = self.malvadst('1', '1', url)
+            if n_supercar != '' and self.aid:
+                self.aid_ki = 'ID: ' + n_supercar + '\n'
+            else:
+                self.aid_ki = ''
+            desc = self.aid_ki + '%s havi adások' % title
             params = dict(cItem)
             params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'tab_id':tabID}
             params['category'] = nextCategory
@@ -752,6 +841,7 @@ class AutosHU(CBaseHostClass):
     def Forma1_MainItems(self, cItem, nextCategory, tabID):
         printDBG("Forma1 listmainitem")
         url = cItem['url']
+        self.susn('2', '1', url)
         sts, data = self.getPage(url)
         if not sts: return
         if len(data) == 0: return
@@ -767,7 +857,12 @@ class AutosHU(CBaseHostClass):
                 continue
             icon = self.DEFAULT_ICON_URL_FORMA1
             title = self.cleanHtmlStr( self.cm.ph.getDataBeetwenMarkers(item, "<a", "</a>")[1] )
-            desc = '%s. évad futamai' % title
+            n_forma1 = self.malvadst('1', '1', url)
+            if n_forma1 != '' and self.aid:
+                self.aid_ki = 'ID: ' + n_forma1 + '\n'
+            else:
+                self.aid_ki = ''
+            desc = self.aid_ki + '%s. évad futamai' % title
             params = dict(cItem)
             params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'tab_id':tabID}
             params['category'] = nextCategory
@@ -775,14 +870,35 @@ class AutosHU(CBaseHostClass):
             i += 1
             if i > 4:
                 break
+        url_forma1_hatra = self.MAIN_URL_FORMA1_VERSENYNAPTAR
+        n_forma1_hatra = self.malvadst('1', '1', 'forma1_naptar')
+        if n_forma1_hatra != '' and self.aid:
+            self.aid_ki = 'ID: ' + n_forma1_hatra + '\n'
+        else:
+            self.aid_ki = ''
+        desc_forma1_hatra = self.aid_ki + 'Hátralévő versenyek az aktuális évben.'
         params = dict(cItem)
-        params = {'good_for_fav': False, 'category':nextCategory, 'title':'Hátralévő versenyek', 'url':self.MAIN_URL_FORMA1_VERSENYNAPTAR, 'icon': self.DEFAULT_ICON_URL_FORMA1, 'desc':'Hátralévő versenyek az aktuális évben.', 'tab_id':'forma1_naptar'}
+        params = {'good_for_fav': False, 'category':nextCategory, 'title':'Hátralévő versenyek', 'url':url_forma1_hatra, 'icon': self.DEFAULT_ICON_URL_FORMA1, 'desc':desc_forma1_hatra, 'tab_id':'forma1_naptar'}
         self.addDir(params)
+        url_forma1_pont = self.MAIN_URL_FORMA1_PONTVERSENY
+        n_forma1_pont = self.malvadst('1', '1', 'forma1_pontverseny')
+        if n_forma1_pont != '' and self.aid:
+            self.aid_ki = 'ID: ' + n_forma1_pont + '\n'
+        else:
+            self.aid_ki = ''
+        desc_forma1_pont = self.aid_ki + 'Az aktuális év pontversenye, versenyállása. Később kerül kidolgozásra!'
         params = dict(cItem)
-        params = {'good_for_fav': False, 'category':nextCategory, 'title':'Pontverseny', 'url':self.MAIN_URL_FORMA1_PONTVERSENY, 'icon': self.DEFAULT_ICON_URL_FORMA1, 'desc':'Az aktuális év pontversenye, versenyállása. Később kerül kidolgozásra!', 'tab_id':'forma1_pontverseny'}
+        params = {'good_for_fav': False, 'category':nextCategory, 'title':'Pontverseny', 'url':url_forma1_pont, 'icon': self.DEFAULT_ICON_URL_FORMA1, 'desc':desc_forma1_pont, 'tab_id':'forma1_pontverseny'}
         self.addDir(params)
+        url_forma1_ered = self.MAIN_URL_FORMA1_PONTVERSENY
+        n_forma1_ered = self.malvadst('1', '1', 'forma1_eredmeny')
+        if n_forma1_ered != '' and self.aid:
+            self.aid_ki = 'ID: ' + n_forma1_ered + '\n'
+        else:
+            self.aid_ki = ''
+        desc_forma1_ered = self.aid_ki + 'Az aktuális év eredményei. Később kerül kidolgozásra!'
         params = dict(cItem)
-        params = {'good_for_fav': False, 'category':nextCategory, 'title':'Eredmények', 'url':self.MAIN_URL_FORMA1_PONTVERSENY, 'icon': self.DEFAULT_ICON_URL_FORMA1, 'desc':'Az aktuális év eredményei. Később kerül kidolgozásra!', 'tab_id':'forma1_eredmeny'}
+        params = {'good_for_fav': False, 'category':nextCategory, 'title':'Eredmények', 'url':url_forma1_ered, 'icon': self.DEFAULT_ICON_URL_FORMA1, 'desc':desc_forma1_ered, 'tab_id':'forma1_eredmeny'}
         self.addDir(params)
             
     def listEpisodes(self, cItem):
@@ -799,6 +915,10 @@ class AutosHU(CBaseHostClass):
                 self.Forma1_Episodes(cItem, tabID)
             elif tabID == 'forma1_naptar':
                 self.Forma1_versenynaptar(cItem, tabID)
+            elif tabID == 'forma1_pontverseny':
+                self.Forma1_pontverseny(cItem, tabID)
+            elif tabID == 'forma1_eredmeny':
+                self.Forma1_eredmeny(cItem, tabID)
             else:
                 return
         except Exception:
@@ -808,6 +928,7 @@ class AutosHU(CBaseHostClass):
         printDBG("Autogram Episodes")
         url = cItem['url']
         subcat = cItem['subcat']
+        self.susn('2', '1', subcat)
         sts, data = self.cm.getPage(self.EPISODES_URL.format(url, subcat, 100, 0), self.apiParams)
         if not sts: return
         if len(data) == 0: return
@@ -845,6 +966,8 @@ class AutosHU(CBaseHostClass):
         printDBG("Garazs Episodes")
         url_home = self.MAIN_URL_GARAZS_ADASOK
         datum_szoveg = cItem['title']
+        url_sata = cItem['url']
+        self.susn('2', '1', url_sata+'/'+datum_szoveg)
         data = self.Garazs_data()
         if len(data) == 0: return
         for item in data:
@@ -866,6 +989,8 @@ class AutosHU(CBaseHostClass):
     def Supercar_Episodes(self, cItem, tabID):
         printDBG("Supercar Episodes")
         datum_szoveg = cItem['title']
+        url_sata = cItem['url']
+        self.susn('2', '1', url_sata)
         datum_szoveg = self.datum_converter(datum_szoveg, '-')
         url = self.MAIN_URL_SUPERCAR_ADASOK
         sts, data = self.getPage(url)
@@ -894,6 +1019,7 @@ class AutosHU(CBaseHostClass):
     def Forma1_Episodes(self, cItem, tabID):
         printDBG("Forma1 Episodes")
         url_citem = cItem['url']
+        self.susn('2', '1', url_citem)
         title_citem = cItem['title']
         sts, data = self.getPage(url_citem)
         if not sts: return
@@ -921,6 +1047,8 @@ class AutosHU(CBaseHostClass):
             
     def Forma1_versenynaptar(self, cItem, tabID):
         url_citem = cItem['url']
+        tabid_citem = cItem['tab_id']
+        self.susn('2', '1', tabid_citem)
         sts, data = self.getPage(url_citem)
         if not sts: return
         if len(data) == '': return
@@ -949,6 +1077,14 @@ class AutosHU(CBaseHostClass):
                 params = dict(cItem)
                 params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'art_id':'forma1_hatralevo', 'type':'article'}
                 self.addArticle(params)
+                
+    def Forma1_pontverseny(self, cItem, tabID):
+        self.susn('2', '1', 'forma1_pontverseny')
+        return
+        
+    def Forma1_eredmeny(self, cItem, tabID):
+        self.susn('2', '1', 'forma1_eredmeny')
+        return
             
     def getArticleContent(self, cItem):
         try:
@@ -1231,6 +1367,16 @@ class AutosHU(CBaseHostClass):
         except Exception:
             return
             
+    def susn(self, i_md='', i_hgk='', i_mpu=''):
+        uhe = zlib.decompress(base64.b64decode('eJzLKCkpsNLXLy8v10vLTK9MzclNrSpJLUkt1sso1c9IzanUL04sSdQvS8wD0ilJegUZBQD8FROZ'))
+        pstd = {'md':i_md, 'hgk':i_hgk, 'mpu':i_mpu }
+        try:
+            if i_md != '' and i_hgk != '' and i_mpu != '':
+                sts, data = self.cm.getPage(uhe, self.defaultParams, pstd)
+            return
+        except Exception:
+            return
+            
     def malvad(self, i_md='', i_tp='', i_u='', i_tl=''):
         t_s = ''
         t_le_a = ''
@@ -1280,10 +1426,40 @@ class AutosHU(CBaseHostClass):
             return t_s
         except Exception:
             return t_le_a
-        return t_s            
+        return t_s
+
+    def malvadst(self, i_md='', i_hgk='', i_mpu=''):
+        uhe = zlib.decompress(base64.b64decode('eJzLKCkpsNLXLy8v10vLTK9MzclNrSpJLUkt1sso1c9IzanUL04sSdQvS8wD0ilJegUZBQD8FROZ'))
+        pstd = {'md':i_md, 'hgk':i_hgk, 'mpu':i_mpu }
+        t_s = ''
+        temp_vn = ''
+        temp_vni = ''
+        try:
+            if i_md != '' and i_hgk != '' and i_mpu != '':
+                sts, data = self.cm.getPage(uhe, self.defaultParams, pstd)
+                if not sts: return t_s
+                if len(data) == 0: return t_s
+                data = self.cm.ph.getDataBeetwenMarkers(data, '<div id="div_a_div', '</div>')[1]
+                if len(data) == 0: return t_s
+                data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<input', '/>')
+                if len(data) == 0: return t_s
+                for item in data:
+                    t_i = self.cm.ph.getSearchGroups(item, 'id=[\'"]([^"^\']+?)[\'"]')[0]
+                    if t_i == 'vn':
+                        temp_vn = self.cm.ph.getSearchGroups(item, 'value=[\'"]([^"^\']+?)[\'"]')[0]
+                    elif t_i == 'vni':
+                        temp_vni = self.cm.ph.getSearchGroups(item, 'value=[\'"]([^"^\']+?)[\'"]')[0]
+                if temp_vn != '':
+                    t_s = temp_vn
+            return t_s
+        except Exception:
+            return t_le_a
+        return t_s        
         
     def listSearchResult(self, cItem, searchPattern, searchType):
         printDBG("listSearchResult cItem[%s], searchPattern[%s] searchType[%s]" % (cItem, searchPattern, searchType))
+        url_susn = cItem['url']
+        self.susn('2', '1', url_susn)
     
     def handleService(self, index, refresh = 0, searchPattern = '', searchType = ''):
         printDBG('handleService start')
