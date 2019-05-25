@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 ###################################################
-# 2019-05-02 by Alec - auto.HU
+# 2019-05-25 by Alec - auto.HU
 #            by celeburdi - rtlmost.hu
 #            by McFly - logok
 ###################################################
-HOST_VERSION = "1.2"
+HOST_VERSION = "1.3"
 ###################################################
 # LOCAL import
 ###################################################
@@ -147,56 +147,56 @@ class AutosHU(CBaseHostClass):
             self.aid_ki = 'ID: ' + n_legfris + '\n'
         else:
             self.aid_ki = ''
-        desc_legfris = self.aid_ki + 'auto.HU - v' + HOST_VERSION + '\n\nLegfrissebb autós adások, műsorok és információk gyűjtőhelye. Amennyiben egyes adások nem játszhatók le, akkor az adott műsor tartalomszolgáltatója megváltoztatta annak elérhetőségét. Ez nem az "auto.HU" lejátszó hibája!!!  Kérlek, hogy ezt vedd figyelembe...'
+        desc_legfris = self.aid_ki + 'auto.HU - v' + HOST_VERSION + '\n\nLegfrissebb autós adások, műsorok és információk gyűjtőhelye. Amennyiben egyes adások nem játszhatók le - NINCS ELÉRHETŐ LINK, akkor az adott műsor tartalomszolgáltatója megváltoztatta annak elérhetőségét. Ez nem az "auto.HU" lejátszó hibája!!!  Kérlek, hogy ezt vedd figyelembe...'
         url_inenonan = 'inenonan'
         n_inenonan = self.malvadst('1', '1', url_inenonan)
         if n_inenonan != '' and self.aid:
             self.aid_ki = 'ID: ' + n_inenonan + '\n'
         else:
             self.aid_ki = ''
-        desc_inenonan = self.aid_ki + 'Autós műsorok véletlenszerű megjelenéssel (A betöltődés hosszabb ideig is eltarthat, max. 1-4 percig is. Várd meg míg betöltődnek az adások..)'
+        desc_inenonan = self.aid_ki + 'Autós műsorok véletlenszerű megjelenéssel (A betöltődés hosszabb ideig is eltarthat, max. 1-2 percig is. Várd meg míg betöltődnek az adások..)'
         url_atipus = 'atipus'
         n_atipus = self.malvadst('1', '1', url_atipus)
         if n_atipus != '' and self.aid:
             self.aid_ki = 'ID: ' + n_atipus + '\n'
         else:
             self.aid_ki = ''
-        desc_atipus = self.aid_ki + 'Autós műsorok az adott típusnak megfelelően. A következő verzióban kerül kidolgozásra, igény esetén!'
+        desc_atipus = self.aid_ki + 'Autós műsorok az adott autó típusának megfelelően...'
         url_autogram = self.MAIN_URL_AUTOGRAM
         n_autogram = self.malvadst('1', '1', url_autogram)
         if n_autogram != '' and self.aid:
             self.aid_ki = 'ID: ' + n_autogram + '\n'
         else:
             self.aid_ki = ''
-        desc_autogram = self.aid_ki + 'Autogram autós műsor adásai.'
+        desc_autogram = self.aid_ki + 'Autogram autós műsor adásai...'
         url_garazs = self.MAIN_URL_GARAZS
         n_garazs = self.malvadst('1', '1', url_garazs)
         if n_garazs != '' and self.aid:
             self.aid_ki = 'ID: ' + n_garazs + '\n'
         else:
             self.aid_ki = ''
-        desc_garazs = self.aid_ki + 'GarázsTV autós műsor adásai.'
+        desc_garazs = self.aid_ki + 'GarázsTV autós műsor adásai...'
         url_super = self.MAIN_URL_SUPERCAR
         n_super = self.malvadst('1', '1', url_super)
         if n_super != '' and self.aid:
             self.aid_ki = 'ID: ' + n_super + '\n'
         else:
             self.aid_ki = ''
-        desc_super = self.aid_ki + 'Supercar autós műsor adásai.'
+        desc_super = self.aid_ki + 'Supercar autós műsor adásai...'
         url_forma1 = self.MAIN_URL_FORMA1
         n_forma1 = self.malvadst('1', '1', url_forma1)
         if n_forma1 != '' and self.aid:
             self.aid_ki = 'ID: ' + n_forma1 + '\n'
         else:
             self.aid_ki = ''
-        desc_forma1 = self.aid_ki + 'Forma1 közvetítések, versenynaptár, pontverseny.'
+        desc_forma1 = self.aid_ki + 'Forma1 közvetítések, versenynaptár, pontverseny...'
         url_keres = 'kereses'
         n_keres = self.malvadst('1', '1', url_keres)
         if n_keres != '' and self.aid:
             self.aid_ki = 'ID: ' + n_keres + '\n'
         else:
             self.aid_ki = ''
-        desc_keres = self.aid_ki + 'A következő verzióban kerül kidolgozásra, igény esetén!'
+        desc_keres = self.aid_ki + 'Keresés az autós műsorok tartalmának címében...'
         MAIN_CAT_TAB = [{'category':'list_main', 'title': 'Legfrissebb adások', 'url': url_legfris, 'tab_id': 'legfrissebb', 'desc': desc_legfris},
                         {'category':'list_main', 'title': 'Adások innen-onnan', 'url': url_inenonan, 'tab_id': 'veletlenszeru', 'desc': desc_inenonan},
                         {'category':'list_main', 'title': 'Autók típus szerint', 'url': url_atipus, 'tab_id': 'tipusok', 'desc': desc_atipus},
@@ -579,17 +579,22 @@ class AutosHU(CBaseHostClass):
         data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<span class="catItemImage"', '</span>')
         if len(data) == 0: return params
         for item in data:
-            url = self.cm.ph.getSearchGroups(item, 'href=[\'"]([^"^\']+?)[\'"]')[0]
-            if url.startswith('/'):
-                url = self.MAIN_URL_FORMA1 + url
-            if not self.cm.isValidUrl(url):
+            title_kieg = ''
+            url_i = self.cm.ph.getSearchGroups(item, 'href=[\'"]([^"^\']+?)[\'"]')[0]
+            if url_i.startswith('/'):
+                url_i = self.MAIN_URL_FORMA1 + url_i
+            if not self.cm.isValidUrl(url_i):
                 continue
-            #if not url_citem in url: continue
-            if not title_citem+'-r' in url: continue
+            else:
+                url, title_kieg = self.Forma1_ft(url_i)
+                if title_kieg != '':
+                    title_kieg = ' - ' + title_kieg
+            if not title_citem+'-r' in url_i: continue
             icon = self.cm.ph.getSearchGroups(item, '''src=['"]([^"^']+?)['"]''')[0]
             if icon.startswith('/'):
                 icon = self.MAIN_URL_FORMA1 + icon
-            title = 'Forma1 - ' + self.ekezetes_atalakitas(self.cm.ph.getSearchGroups(item, '''title="([^"]+?)"''')[0])
+            title = 'Forma1 - ' + self.ekezetes_atalakitas(self.cm.ph.getSearchGroups(item, '''title="([^"]+?)"''')[0]) + title_kieg
+            title = title.strip()
             desctemp = self.malvad('1', '4', url, title)
             desc = title + '\n\n' + desctemp
             params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'tab_id':tabID}
@@ -619,7 +624,7 @@ class AutosHU(CBaseHostClass):
                 i = 1
                 for item in musorList:
                     i += 1
-                    if i > 30:
+                    if i > 20:
                         break
                     self.addVideo(item)
         except Exception:
@@ -669,7 +674,7 @@ class AutosHU(CBaseHostClass):
                             params = {'good_for_fav': False, 'title': title, 'url': url_ep, 'icon': icon, 'desc': desc, 'tab_id': tabID}
                             paramsList.append(params)
                             y += 1
-                            if y > 50:
+                            if y > 30:
                                 break
                     except Exception:
                         printExc()
@@ -701,7 +706,7 @@ class AutosHU(CBaseHostClass):
             params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'tab_id':tabID}
             paramsList.append(params)
             i += 1
-            if i > 50:
+            if i > 30:
                 break
         return paramsList
         
@@ -733,7 +738,7 @@ class AutosHU(CBaseHostClass):
             params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'tab_id':tabID}
             paramsList.append(params)
             i += 1
-            if i > 50:
+            if i > 30:
                 break
         return paramsList
     
@@ -759,7 +764,9 @@ class AutosHU(CBaseHostClass):
                 data = json_loads(data)
                 subcats = data['program_subcats']
                 if 0 == len(subcats): return
+                ln = 0
                 for i in subcats:
+                    ln += 1
                     title = i['title']
                     subcat = str(i['id'])
                     n_autogram = self.malvadst('1', '1', subcat)
@@ -771,6 +778,7 @@ class AutosHU(CBaseHostClass):
                     params = dict(cItem)
                     params.update({'good_for_fav': False, 'category': nextCategory, 'title': title, 'url': url, 'subcat': subcat, 'desc': desc, 'tab_id': tabID, 'icon': self.DEFAULT_ICON_URL_AUTOGRAM})
                     self.addDir(params)
+                    if ln >= 2: break
             except Exception: printExc()
         
     def Garazs_MainItems(self, cItem, nextCategory, tabID):
@@ -780,12 +788,14 @@ class AutosHU(CBaseHostClass):
         url_home = self.MAIN_URL_GARAZS_ADASOK
         data = self.Garazs_data()
         if len(data) == 0: return
+        ln = 0
         for item in data:
             musor_datuma = self.cm.ph.getDataBeetwenMarkers(item, '<span class="date" title="', '">', False)[1]
             tmp_tomb = musor_datuma.split(' ')
             if len(tmp_tomb) < 2:
                 continue
             else:
+                ln += 1
                 if not self.ev_e(self.cm.ph.getSearchGroups(tmp_tomb[0], '''([0-9]{4})''')[0],True): continue
                 if not self.honapnev_e(tmp_tomb[1].strip()): continue
                 if not tmp_tomb[0].endswith('.'):
@@ -810,6 +820,7 @@ class AutosHU(CBaseHostClass):
                 params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'tab_id':tabID}
                 params['category'] = nextCategory
                 self.addDir(params)
+                if ln > 15: break
         
     def Supercar_MainItems(self, cItem, nextCategory, tabID):
         printDBG("Supercar listmainitem")
@@ -821,7 +832,10 @@ class AutosHU(CBaseHostClass):
         data = self.cm.ph.getDataBeetwenMarkers(data, "<h3 class='widgettitle'>Archív</h3><ul>", "</ul>")[1]
         if len(data) == 0: return
         data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<li', '</li>')
+        if len(data) == 0: return
+        ln = 0
         for item in data:
+            ln += 1
             url = self.getFullUrl(self.cm.ph.getSearchGroups(item, 'href=[\'"]([^"^\']+?)[\'"]')[0])
             if not self.cm.isValidUrl(url):
                 continue
@@ -837,6 +851,7 @@ class AutosHU(CBaseHostClass):
             params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'tab_id':tabID}
             params['category'] = nextCategory
             self.addDir(params)
+            if ln > 15: break
             
     def Forma1_MainItems(self, cItem, nextCategory, tabID):
         printDBG("Forma1 listmainitem")
@@ -848,6 +863,7 @@ class AutosHU(CBaseHostClass):
         data = self.cm.ph.getDataBeetwenMarkers(data, '<a  href="/2011"', '</ul>')[1]
         if len(data) == 0: return
         data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<li', '</li>')
+        if len(data) == 0: return
         i = 1
         for item in reversed(data):
             url = self.cm.ph.getSearchGroups(item, 'href=[\'"]([^"^\']+?)[\'"]')[0]
@@ -868,8 +884,7 @@ class AutosHU(CBaseHostClass):
             params['category'] = nextCategory
             self.addDir(params)
             i += 1
-            if i > 4:
-                break
+            if i > 2: break
         url_forma1_hatra = self.MAIN_URL_FORMA1_VERSENYNAPTAR
         n_forma1_hatra = self.malvadst('1', '1', 'forma1_naptar')
         if n_forma1_hatra != '' and self.aid:
@@ -1018,6 +1033,7 @@ class AutosHU(CBaseHostClass):
             
     def Forma1_Episodes(self, cItem, tabID):
         printDBG("Forma1 Episodes")
+        title_kieg = ''
         url_citem = cItem['url']
         self.susn('2', '1', url_citem)
         title_citem = cItem['title']
@@ -1028,22 +1044,70 @@ class AutosHU(CBaseHostClass):
         data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<span class="catItemImage"', '</span>')
         if len(data) == 0: return
         for item in data:
-            url = self.cm.ph.getSearchGroups(item, 'href=[\'"]([^"^\']+?)[\'"]')[0]
-            if url.startswith('/'):
-                url = self.MAIN_URL_FORMA1 + url
-            if not self.cm.isValidUrl(url):
+            url_i = self.cm.ph.getSearchGroups(item, 'href=[\'"]([^"^\']+?)[\'"]')[0]
+            if url_i.startswith('/'):
+                url_i = self.MAIN_URL_FORMA1 + url_i
+            if not self.cm.isValidUrl(url_i):
                 continue
+            else:
+                url, title_kieg = self.Forma1_ft(url_i)
+                if title_kieg != '':
+                    title_kieg = ' - ' + title_kieg
             #if not url_citem in url: continue
-            if not title_citem+'-r' in url: continue
+            if not title_citem+'-r' in url_i: continue
             icon = self.cm.ph.getSearchGroups(item, '''src=['"]([^"^']+?)['"]''')[0]
             if icon.startswith('/'):
                 icon = self.MAIN_URL_FORMA1 + icon
-            title = self.ekezetes_atalakitas(self.cm.ph.getSearchGroups(item, '''title="([^"]+?)"''')[0])
+            title = self.ekezetes_atalakitas(self.cm.ph.getSearchGroups(item, '''title="([^"]+?)"''')[0]) + title_kieg
+            title = title.strip()
             desctemp = self.malvad('1', '4', url, title)
             desc = title + '\n\n' + desctemp
             params = dict(cItem)
             params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'tab_id':tabID}
             self.addVideo(params)
+            
+    def Forma1_ft(self, pu):
+        bu = ''
+        btk = ''
+        tvb = False
+        try:
+            if pu != '':
+                sts, data_tmp = self.getPage(pu)
+                if not sts: return '',''
+                if data_tmp == '': return '',''
+                data = self.cm.ph.getDataBeetwenMarkers(data_tmp, '<a id="anchor-futam', '</iframe>')[1]
+                if data != '':
+                    tvb = True
+                if not tvb:
+                    data = self.cm.ph.getDataBeetwenMarkers(data_tmp, '<a id="anchor-idomero-edzes', '</iframe>')[1]
+                    if data != '':
+                        tvb = True
+                        btk = 'időmérőedzés'
+                if not tvb:
+                    data = self.cm.ph.getDataBeetwenMarkers(data_tmp, '<a id="anchor-3-szabadedzes', '</iframe>')[1]
+                    if data != '':
+                        tvb = True
+                        btk = '3. szabadedzés'
+                if not tvb:
+                    data = self.cm.ph.getDataBeetwenMarkers(data_tmp, '<a id="anchor-2-szabadedzes', '</iframe>')[1]
+                    if data != '':
+                        tvb = True
+                        btk = '2. szabadedzés'
+                if not tvb:
+                    data = self.cm.ph.getDataBeetwenMarkers(data_tmp, '<a id="anchor-1-szabadedzes', '</iframe>')[1]
+                    if data != '':
+                        tvb = True
+                        btk = '1. szabadedzés'
+                if data == '': return '',''
+                url = self.cm.ph.getSearchGroups(data, '''src=['"]([^"^']+?)['"]''')[0]
+                if url == '': return '',''
+                if url.startswith('//'):
+                    url = 'https:' + url
+                bu = url
+                return bu, btk
+        except Exception:
+            return '',''
+        return bu, btk
             
     def Forma1_versenynaptar(self, cItem, tabID):
         url_citem = cItem['url']
@@ -1246,14 +1310,6 @@ class AutosHU(CBaseHostClass):
     def Forma1_getLinksForVideo(self, cItem):
         urlTab = []
         url = cItem['url']
-        sts, data_tmp = self.getPage(url)
-        if not sts: return []
-        if data_tmp == '': return []
-        data = self.cm.ph.getDataBeetwenMarkers(data_tmp, '<a id="anchor-futam', '</iframe>')[1]
-        if data == '': return []
-        url = self.cm.ph.getSearchGroups(data, '''src=['"]([^"^']+?)['"]''')[0]
-        if url.startswith('//'):
-            url = 'https:' + url
         baseUrl = strwithmeta(url)
         HTTP_HEADER = self.cm.getDefaultHeader(browser='chrome')
         referer = baseUrl.meta.get('Referer')
