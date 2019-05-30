@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
 ###################################################
-# 2019-05-25 by Alec - auto.HU
+# 2019-05-30 by Alec - auto.HU
 #            by celeburdi - rtlmost.hu
 #            by McFly - logok
 ###################################################
-HOST_VERSION = "1.3"
+HOST_VERSION = "1.4"
 ###################################################
 # LOCAL import
 ###################################################
 from Plugins.Extensions.IPTVPlayer.components.iptvplayerinit import TranslateTXT as _, SetIPTVPlayerLastHostError
 from Plugins.Extensions.IPTVPlayer.components.ihost import CHostBase, CBaseHostClass
-from Plugins.Extensions.IPTVPlayer.tools.iptvtools import printDBG, printExc, byteify, rm, GetTmpDir, MergeDicts
+from Plugins.Extensions.IPTVPlayer.tools.iptvtools import printDBG, printExc, byteify, rm, GetIPTVPlayerVerstion, GetTmpDir, MergeDicts
 from Plugins.Extensions.IPTVPlayer.tools.iptvtypes import strwithmeta
 from Plugins.Extensions.IPTVPlayer.libs.youtube_dl.utils import clean_html
 from Plugins.Extensions.IPTVPlayer.libs.urlparserhelper import getDirectM3U8Playlist, getF4MLinksWithMeta, getMPDLinksWithMeta, decorateUrl
@@ -39,6 +39,7 @@ try:
 except Exception:
     import simplejson as json
 from Components.config import config, ConfigText, ConfigYesNo, getConfigListEntry
+from Tools.Directories import resolveFilename, fileExists, SCOPE_PLUGINS
 from datetime import datetime
 from hashlib import sha1
 ###################################################
@@ -80,7 +81,6 @@ class AutosHU(CBaseHostClass):
     def __init__(self):
         CBaseHostClass.__init__(self, {'history':'auto.hu', 'cookie':'autohu.cookie'})
         self.USER_AGENT = 'User-Agent=Mozilla/5.0 (Windows NT 6.1; WOW64; rv:40.0) Gecko/20100101 Firefox/40.0'
-        #self.HEADER = {'User-Agent': self.USER_AGENT, 'DNT':'1', 'Accept': 'text/html'}
         self.HEADER = self.cm.getDefaultHeader()
         self.AJAX_HEADER = dict(self.HEADER)
         self.AJAX_HEADER.update( {'X-Requested-With': 'XMLHttpRequest'} )
@@ -132,6 +132,11 @@ class AutosHU(CBaseHostClass):
         self.DEFAULT_ICON_URL_FORMA1 = zlib.decompress(base64.b64decode('eJzLKCkpsNLXLy8v10vLTK9MzclNrSpJLUkt1sso1U8zjM/JT8/XK8hLBwA4Gg8x'))
         self.MAIN_URL_FORMA1_VERSENYNAPTAR = zlib.decompress(base64.b64decode('eJzLKCkpKLbS1y8vL9fLNSkuyC8q0cso1U8z1C1LLSpOzavMSywoSSzSBwAwVw73'))
         self.MAIN_URL_FORMA1_PONTVERSENY = zlib.decompress(base64.b64decode('eJzLKCkpKLbS1y8vL9fLNSkuyC8q0cso1U8z1C3IzyspSy0qTs2r1AcAErkOMg=='))
+        self.kfvk = zlib.decompress(base64.b64decode('eJzLKCkpsNLXLy8v10vLTK9MzclNrSpJLUkt1sso1c9IzanUTzPUBwAMUA2+'))
+        self.kfvcsk =zlib.decompress(base64.b64decode('eJzLKCkpsNLXLy8v10vLTK9MzclNrSpJLUkt1sso1c9IzanUTzNMLk4sSCzRBwBowRA6'))
+        self.vivn = GetIPTVPlayerVerstion()
+        self.porv = self.gits()
+        self.pbtp = '-'
         self.loggedIn = False
         self.login = ''
         self.password = ''
@@ -140,7 +145,6 @@ class AutosHU(CBaseHostClass):
         self.defaultParams = {'header':self.HEADER, 'use_cookie': True, 'load_cookie': True, 'save_cookie': True, 'cookiefile': self.COOKIE_FILE}    
                             
     def listMainMenu(self, cItem):
-        printDBG("autohu.listMainMenu")
         url_legfris = 'legfrissebb'
         n_legfris = self.malvadst('1', '1', url_legfris)
         if n_legfris != '' and self.aid:
@@ -391,7 +395,6 @@ class AutosHU(CBaseHostClass):
             return date_string
             
     def Garazs_data(self):
-        printDBG("Garazs_data")
         try:
             data = []
             printDBG("Garazs listmainitem")
@@ -409,7 +412,6 @@ class AutosHU(CBaseHostClass):
             return data
 
     def listMainItems(self, cItem, nextCategory):
-        printDBG("autohu.listMainItems")
         try:
             tabID = cItem.get('tab_id', '')
             if tabID == 'legfrissebb':
@@ -432,7 +434,6 @@ class AutosHU(CBaseHostClass):
             printExc()
             
     def Legfrissebb_MainItems(self, cItem, tabID):
-        printDBG("Legfrissebb listmainItem")
         url = cItem['url']
         try:
             self.susn('2', '1', url)
@@ -534,6 +535,7 @@ class AutosHU(CBaseHostClass):
         data = self.cm.ph.getDataBeetwenMarkers(data, '<div class="flex_column av_two_third', '<div class="flex_column av_one_third')[1]
         if len(data) == 0: return params
         data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<a href=', '</a>')
+        if len(data) == 0: return params
         for item in data:
             if not 'av-masonry-1-item' in item: continue
             url = self.getFullUrl(self.cm.ph.getSearchGroups(item, 'href=[\'"]([^"^\']+?)[\'"]')[0])
@@ -602,7 +604,6 @@ class AutosHU(CBaseHostClass):
         return params
         
     def Veletlen_MainItems(self, cItem, tabID):
-        printDBG("Véletlenszerű listmainItem")
         url = cItem['url']
         try:
             self.susn('2', '1', url)
@@ -743,7 +744,6 @@ class AutosHU(CBaseHostClass):
         return paramsList
     
     def Tipusok_MainItems(self, cItem, nextCategory, tabID):
-        printDBG("Autogram listmainitem")
         url = cItem['url']
         try:
             self.susn('2', '1', url)
@@ -752,7 +752,6 @@ class AutosHU(CBaseHostClass):
         return
     
     def Autogram_MainItems(self, cItem, nextCategory, tabID):
-        printDBG("Autogram listmainitem")
         url = cItem['url']
         self.susn('2', '1', url)
         if self.tryTologin():
@@ -823,7 +822,6 @@ class AutosHU(CBaseHostClass):
                 if ln > 15: break
         
     def Supercar_MainItems(self, cItem, nextCategory, tabID):
-        printDBG("Supercar listmainitem")
         url = cItem['url']
         self.susn('2', '1', url)
         sts, data = self.getPage(url)
@@ -854,7 +852,6 @@ class AutosHU(CBaseHostClass):
             if ln > 15: break
             
     def Forma1_MainItems(self, cItem, nextCategory, tabID):
-        printDBG("Forma1 listmainitem")
         url = cItem['url']
         self.susn('2', '1', url)
         sts, data = self.getPage(url)
@@ -891,7 +888,7 @@ class AutosHU(CBaseHostClass):
             self.aid_ki = 'ID: ' + n_forma1_hatra + '\n'
         else:
             self.aid_ki = ''
-        desc_forma1_hatra = self.aid_ki + 'Hátralévő versenyek az aktuális évben.'
+        desc_forma1_hatra = self.aid_ki + 'Hátralévő versenyek az aktuális évben...'
         params = dict(cItem)
         params = {'good_for_fav': False, 'category':nextCategory, 'title':'Hátralévő versenyek', 'url':url_forma1_hatra, 'icon': self.DEFAULT_ICON_URL_FORMA1, 'desc':desc_forma1_hatra, 'tab_id':'forma1_naptar'}
         self.addDir(params)
@@ -901,23 +898,22 @@ class AutosHU(CBaseHostClass):
             self.aid_ki = 'ID: ' + n_forma1_pont + '\n'
         else:
             self.aid_ki = ''
-        desc_forma1_pont = self.aid_ki + 'Az aktuális év pontversenye, versenyállása. Később kerül kidolgozásra!'
+        desc_forma1_pont = self.aid_ki + 'Az aktuális év pontversenye. Versenyzői és konstruktőri bajnokság állása...'
         params = dict(cItem)
         params = {'good_for_fav': False, 'category':nextCategory, 'title':'Pontverseny', 'url':url_forma1_pont, 'icon': self.DEFAULT_ICON_URL_FORMA1, 'desc':desc_forma1_pont, 'tab_id':'forma1_pontverseny'}
         self.addDir(params)
-        url_forma1_ered = self.MAIN_URL_FORMA1_PONTVERSENY
+        url_forma1_ered = self.MAIN_URL_FORMA1_VERSENYNAPTAR
         n_forma1_ered = self.malvadst('1', '1', 'forma1_eredmeny')
         if n_forma1_ered != '' and self.aid:
             self.aid_ki = 'ID: ' + n_forma1_ered + '\n'
         else:
             self.aid_ki = ''
-        desc_forma1_ered = self.aid_ki + 'Az aktuális év eredményei. Később kerül kidolgozásra!'
+        desc_forma1_ered = self.aid_ki + 'Az aktuális év lezajlott futamjainak eredményei...'
         params = dict(cItem)
         params = {'good_for_fav': False, 'category':nextCategory, 'title':'Eredmények', 'url':url_forma1_ered, 'icon': self.DEFAULT_ICON_URL_FORMA1, 'desc':desc_forma1_ered, 'tab_id':'forma1_eredmeny'}
         self.addDir(params)
             
-    def listEpisodes(self, cItem):
-        printDBG("autohu.listEpisodes")
+    def listEpisodes(self, cItem, nextCategory):
         try:
             tabID = cItem.get('tab_id', '')
             if tabID == 'autogram':
@@ -931,7 +927,7 @@ class AutosHU(CBaseHostClass):
             elif tabID == 'forma1_naptar':
                 self.Forma1_versenynaptar(cItem, tabID)
             elif tabID == 'forma1_pontverseny':
-                self.Forma1_pontverseny(cItem, tabID)
+                self.Forma1_pontverseny(cItem, nextCategory, tabID)
             elif tabID == 'forma1_eredmeny':
                 self.Forma1_eredmeny(cItem, tabID)
             else:
@@ -940,7 +936,6 @@ class AutosHU(CBaseHostClass):
             printExc()
             
     def Autogram_Episodes(self, cItem, tabID):
-        printDBG("Autogram Episodes")
         url = cItem['url']
         subcat = cItem['subcat']
         self.susn('2', '1', subcat)
@@ -978,7 +973,6 @@ class AutosHU(CBaseHostClass):
             return
         
     def Garazs_Episodes(self, cItem, tabID):
-        printDBG("Garazs Episodes")
         url_home = self.MAIN_URL_GARAZS_ADASOK
         datum_szoveg = cItem['title']
         url_sata = cItem['url']
@@ -1002,7 +996,6 @@ class AutosHU(CBaseHostClass):
             self.addVideo(params)
         
     def Supercar_Episodes(self, cItem, tabID):
-        printDBG("Supercar Episodes")
         datum_szoveg = cItem['title']
         url_sata = cItem['url']
         self.susn('2', '1', url_sata)
@@ -1032,7 +1025,6 @@ class AutosHU(CBaseHostClass):
             self.addVideo(params)
             
     def Forma1_Episodes(self, cItem, tabID):
-        printDBG("Forma1 Episodes")
         title_kieg = ''
         url_citem = cItem['url']
         self.susn('2', '1', url_citem)
@@ -1142,13 +1134,193 @@ class AutosHU(CBaseHostClass):
                 params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'art_id':'forma1_hatralevo', 'type':'article'}
                 self.addArticle(params)
                 
-    def Forma1_pontverseny(self, cItem, tabID):
+    def Forma1_pontverseny(self, cItem, nextCategory, tabID):
         self.susn('2', '1', 'forma1_pontverseny')
-        return
+        n_ev = self.malvadst('1', '1', 'auto_f1_egyeni_verseny')
+        if n_ev != '' and self.aid:
+            self.aid_ki = 'ID: ' + n_ev + '\n'
+        else:
+            self.aid_ki = ''
+        desc_ev = self.aid_ki + 'Versenyzői bajnokság...'
+        n_csv = self.malvadst('1', '1', 'auto_f1_csapat_verseny')
+        if n_csv != '' and self.aid:
+            self.aid_ki = 'ID: ' + n_csv + '\n'
+        else:
+            self.aid_ki = ''
+        desc_csv = self.aid_ki + 'Konstruktőri bajnokság...'
+        PV_CAT_TAB = [{'category':nextCategory, 'title': 'Versenyzői bajnokság', 'tab_id': 'f1_egyeni_verseny', 'desc': desc_ev},
+                      {'category':nextCategory, 'title': 'Konstruktőri bajnokság', 'tab_id': 'f1_csapat_verseny', 'desc': desc_csv}                        
+                     ]
+        self.listsTab(PV_CAT_TAB, cItem)
         
     def Forma1_eredmeny(self, cItem, tabID):
+        url_citem = cItem['url']
+        tabid_citem = cItem['tab_id']
         self.susn('2', '1', 'forma1_eredmeny')
-        return
+        sts, data = self.getPage(url_citem)
+        if not sts: return
+        if len(data) == '': return
+        data = self.cm.ph.getDataBeetwenMarkers(data, '<div class="F1-RaceSelectorList"', '<div class="F1-raceSelectorMobil">')[1]
+        if len(data) == 0: return
+        data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<a href="javascript:void(0);"', '</a>')
+        if len(data) == 0: return
+        for item in data:
+            url = self.cm.ph.getSearchGroups(item, '''data-target_url=[\'"]([^"^\']+?)[\'"]''')[0]
+            if url.startswith('//'):
+                url = 'https:' + url
+            if not url.startswith('https'):
+                continue
+            if not self.cm.isValidUrl(url):
+                continue
+            currentYear = str(datetime.now().year)
+            datum_tmp = self.cm.ph.getDataBeetwenMarkers(item, '<div class="raceDate"', '</div>')[1]
+            datum_string = currentYear + '. ' +self.cm.ph.getDataBeetwenMarkers(datum_tmp, '<span>', '</span>', False)[1]
+            datum = datetime.strptime(self.datum_from_honapos(datum_string), "%Y-%m-%d").date()
+            akt_datum = datetime.now().date()
+            if datum < akt_datum:
+                ems, biu = self.emselo(url)
+                hely_city = self.cm.ph.getDataBeetwenMarkers(item, 'class="F1-raceCity">', '</span>', False)[1]
+                hely_country = self.cm.ph.getDataBeetwenMarkers(item, 'class="F1-raceCountry">', '</span>', False)[1]
+                title = self.datum_from_honapos(datum_string) + '  -  ' + hely_city + ' (' + hely_country +')'
+                icon = biu
+                desc = 'Futam:  ' + datum_string + '  |  ' + hely_city + ' (' + hely_country +')\n\nEredmény:\n' + ems
+                params = dict(cItem)
+                params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'art_id':'forma1_hatralevo', 'type':'article'}
+                self.addArticle(params)
+                
+    def emselo(self, url):
+        bvs = ''
+        biu = self.DEFAULT_ICON_URL_FORMA1
+        ln = 0
+        try:
+            if url != '':
+                sts, data = self.getPage(url)
+                if not sts: return bvs, biu
+                if len(data) == '': return bvs, biu
+                imdata = self.cm.ph.getDataBeetwenMarkers(data, '<div class="gpName"', '<div class="gpTimetable">')[1]
+                image_url = self.cm.ph.getSearchGroups(imdata, '''src=[\'"]([^"^\']+?)[\'"]''')[0]
+                if image_url != '':
+                    if image_url.startswith('//'):
+                        image_url = 'https:' + image_url
+                    if not image_url.startswith('https'):
+                        image_url = self.DEFAULT_ICON_URL_FORMA1
+                else:
+                    image_url = self.DEFAULT_ICON_URL_FORMA1
+                biu = image_url
+                data = self.cm.ph.getDataBeetwenMarkers(data, '<div class="raceResultsTable finish active" data-tab_id="1"', '<div class="raceResultsTable practice"')[1]
+                if len(data) == 0: return bvs, biu
+                data =  self.cm.ph.getAllItemsBeetwenNodes(data, ('<div class=', '>', 'line'), ('<div class="wcPoints"', '</div>'))
+                if len(data) == 0: return bvs, biu
+                for item in data:
+                    poz = self.cm.ph.getDataBeetwenMarkers(item, '<div class="position">', '</div>', False)[1]
+                    if len(poz) == 0: continue
+                    nev = self.cm.ph.getDataBeetwenMarkers(item, '<span class="pilotNameLong">', '</span>', False)[1]
+                    if len(nev) == 0: continue
+                    pont = self.cm.ph.getDataBeetwenMarkers(item, '<div class="wcPoints">', '</div>', False)[1]
+                    if len(pont) == 0: continue
+                    ln += 1
+                    if ln == 1:
+                        tmp = poz + ' - ' + nev + '  (' + pont + ' pont)'
+                    else:
+                        tmp = ',   ' + poz + ' - ' + nev + '  (' + pont + ' pont)'
+                    bvs = bvs + tmp
+            return bvs, biu
+        except Exception:
+            return '', self.DEFAULT_ICON_URL_FORMA1
+        
+    def listThird(self, cItem):
+        try:
+            tabID = cItem.get('tab_id', '')
+            if tabID == 'f1_egyeni_verseny':
+                self.Ltev(cItem, tabID)
+            elif tabID == 'f1_csapat_verseny':
+                self.Ltcsv(cItem, tabID)
+            else:
+                return
+        except Exception:
+            printExc()
+            
+    def Ltev(self, cItem, tabID):
+        url = ''
+        self.susn('2', '1', 'auto_f1_egyeni_verseny')
+        sts, data = self.getPage(self.MAIN_URL_FORMA1_PONTVERSENY)
+        if not sts: return
+        if len(data) == '': return
+        data = self.cm.ph.getDataBeetwenMarkers(data, '<div class="pilotStandings"', '<div class="teamStandings">')[1]
+        if len(data) == 0: return
+        data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<tr', '</tr>')
+        if len(data) == 0: return
+        for item in data:
+            poz = self.cm.ph.getDataBeetwenMarkers(item, '<td class="position"><span>', '</span></td>', False)[1]
+            if len(poz) == 0: continue
+            nev = self.cm.ph.getDataBeetwenMarkers(item, '<span class="pilotNameLong">', '</span>', False)[1]
+            if len(nev) == 0: continue
+            csapat = self.cm.ph.getDataBeetwenMarkers(item, '<span class="pilotTeamLong">', '</span>', False)[1]
+            if len(csapat) == 0: continue
+            pont = self.cm.ph.getDataBeetwenMarkers(item, '<td class="points"><span>', '</span>', False)[1]
+            if len(pont) == 0: continue
+            nev_url_tmp = self.cm.ph.getDataBeetwenMarkers(item, '<td class="pilotName">', '</td>', False)[1]
+            nev_url = self.cm.ph.getSearchGroups(nev_url_tmp, 'href=[\'"]([^"^\']+?)[\'"]')[0]
+            if nev_url != '':
+                if nev_url.startswith('//'):
+                    nev_url = 'https:' + nev_url
+            if not self.cm.isValidUrl(nev_url):
+                continue
+            icon = self.Ltev_i(nev_url,self.kfvk)
+            if icon == '':
+                icon = self.DEFAULT_ICON_URL_FORMA1
+            title = poz + '. hely  -  ' + nev + '  (' + csapat + ')  -  ' + pont + ' pont'
+            desc = 'Helyezés:\n' + title
+            params = dict(cItem)
+            params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'type':'article'}
+            self.addArticle(params)
+            
+    def Ltev_i(self, nu='', eu=''):
+        icon = self.DEFAULT_ICON_URL_FORMA1
+        try:
+            if nu != '' and eu != '':
+                tlt = nu.find('=')
+                if -1 < tlt:
+                    ti = eu + nu[tlt+1:].replace('ü','u') + '.jpg'
+                    if self.cm.isValidUrl(ti):
+                        icon = ti
+            return icon
+        except Exception:
+            return self.DEFAULT_ICON_URL_FORMA1
+        
+    def Ltcsv(self, cItem, tabID):
+        icon = self.DEFAULT_ICON_URL_FORMA1
+        url = ''
+        self.susn('2', '1', 'auto_f1_csapat_verseny')
+        sts, data = self.getPage(self.MAIN_URL_FORMA1_PONTVERSENY)
+        if not sts: return
+        if len(data) == '': return
+        data = self.cm.ph.getDataBeetwenMarkers(data, '<div class="teamStandings"', '<div class="clearFix">')[1]
+        if len(data) == 0: return
+        data = self.cm.ph.getAllItemsBeetwenMarkers(data, '<tr', '</tr>')
+        if len(data) == 0: return
+        for item in data:
+            poz = self.cm.ph.getDataBeetwenMarkers(item, '<td class="position"><span>', '</span></td>', False)[1]
+            if len(poz) == 0: continue
+            csapat = self.cm.ph.getDataBeetwenMarkers(item, '<span class="teamNameLong">', '</span>', False)[1]
+            if len(csapat) == 0: continue
+            pont = self.cm.ph.getDataBeetwenMarkers(item, '<td class="points"><span>', '</span>', False)[1]
+            if len(pont) == 0: continue
+            nev_url_tmp = self.cm.ph.getDataBeetwenMarkers(item, '<td class="teamName">', '</td>', False)[1]
+            nev_url = self.cm.ph.getSearchGroups(nev_url_tmp, 'href=[\'"]([^"^\']+?)[\'"]')[0]
+            if nev_url != '':
+                if nev_url.startswith('//'):
+                    nev_url = 'https:' + nev_url
+            if not self.cm.isValidUrl(nev_url):
+                continue
+            icon = self.Ltev_i(nev_url,self.kfvcsk)
+            if icon == '':
+                icon = self.DEFAULT_ICON_URL_FORMA1
+            title = poz + '. hely  -  ' + csapat + '  -  ' + pont + ' pont'
+            desc = 'Helyezés:\n' + title
+            params = dict(cItem)
+            params = {'good_for_fav': False, 'title':title, 'url':url, 'icon':icon, 'desc':desc, 'type':'article'}
+            self.addArticle(params)
             
     def getArticleContent(self, cItem):
         try:
@@ -1230,8 +1402,7 @@ class AutosHU(CBaseHostClass):
             else:
                 return []
         except Exception:
-            printExc()
-        
+            printExc()    
             
     def Autogram_getLinksForVideo(self, cItem):
         url = cItem['url']
@@ -1264,7 +1435,6 @@ class AutosHU(CBaseHostClass):
         return videoUrls
             
     def Garazs_getLinksForVideo(self, cItem):
-        printDBG("Garazs_getLinksForVideo [%s]" % cItem)
         urlTab = []
         url = cItem['url']
         sts, data = self.getPage(url)
@@ -1282,7 +1452,6 @@ class AutosHU(CBaseHostClass):
             return []
 
     def Supercar_getLinksForVideo(self, cItem):
-        printDBG("Supercar_getLinksForVideo [%s]" % cItem)
         urlTab = []
         url = cItem['url']
         sts, data = self.getPage(url)
@@ -1350,7 +1519,6 @@ class AutosHU(CBaseHostClass):
         return urlTab
         
     def tryTologin(self):
-        printDBG('tryTologin start')
         needLogin = False
         if self.login != config.plugins.iptvplayer.autohu_rtlmost_login.value or self.password != config.plugins.iptvplayer.autohu_rtlmost_password.value:
             needLogin = True
@@ -1359,7 +1527,6 @@ class AutosHU(CBaseHostClass):
         if self.loggedIn and not needLogin: return True
         self.loggedIn = False
         if '' == self.login.strip() or '' == self.password.strip():
-            printDBG('tryTologin wrong login data')
             self.sessionEx.open(MessageBox, 'Az Autogram megnézéséhez regisztrálnod kell a %s oldalon! \nA kék gomb, majd az Oldal beállításai segítségével megadhatod az ottani belépési adataidat.' % 'https://www.rtlmost.hu', type = MessageBox.TYPE_ERROR, timeout = 15 )
             return False
         try:
@@ -1425,13 +1592,32 @@ class AutosHU(CBaseHostClass):
             
     def susn(self, i_md='', i_hgk='', i_mpu=''):
         uhe = zlib.decompress(base64.b64decode('eJzLKCkpsNLXLy8v10vLTK9MzclNrSpJLUkt1sso1c9IzanUL04sSdQvS8wD0ilJegUZBQD8FROZ'))
-        pstd = {'md':i_md, 'hgk':i_hgk, 'mpu':i_mpu }
+        pstd = {'md':i_md, 'hgk':i_hgk, 'mpu':i_mpu, 'hv':self.vivn, 'orv':self.porv, 'bts':self.pbtp}
         try:
             if i_md != '' and i_hgk != '' and i_mpu != '':
                 sts, data = self.cm.getPage(uhe, self.defaultParams, pstd)
             return
         except Exception:
             return
+            
+    def gits(self):
+        bv = '-'
+        tt = []
+        try:
+            if fileExists(zlib.decompress(base64.b64decode('eJzTTy1J1s8sLi5NBQATXQPE'))):
+                fr = open(zlib.decompress(base64.b64decode('eJzTTy1J1s8sLi5NBQATXQPE')),'r')
+                for ln in fr:
+                    ln = ln.rstrip('\n')
+                    if ln != '':
+                        tt.append(ln)
+                fr.close()
+                if len(tt) == 1:
+                    bv = tt[0].strip()[:-6].capitalize()
+                if len(tt) == 2:
+                    bv = tt[1].strip()[:-6].capitalize()
+            return bv
+        except:
+            return '-'
             
     def malvad(self, i_md='', i_tp='', i_u='', i_tl=''):
         t_s = ''
@@ -1518,19 +1704,19 @@ class AutosHU(CBaseHostClass):
         self.susn('2', '1', url_susn)
     
     def handleService(self, index, refresh = 0, searchPattern = '', searchType = ''):
-        printDBG('handleService start')
         CBaseHostClass.handleService(self, index, refresh, searchPattern, searchType)
         name     = self.currItem.get("name", '')
         category = self.currItem.get("category", '')
         mode     = self.currItem.get("mode", '')
-        printDBG( "handleService: |||||||||||||||||||||||||||||||||||| name[%s], category[%s] " % (name, category) )
         self.currList = []
         if name == None:
             self.listMainMenu( {'name':'category'} )
         elif category == 'list_main':
             self.listMainItems(self.currItem, 'list_episodes')
         elif category == 'list_episodes':
-            self.listEpisodes(self.currItem)
+            self.listEpisodes(self.currItem, 'list_third')
+        elif category == 'list_third':
+            self.listThird(self.currItem)
         elif category in ["search", "search_next_page"]:
             cItem = dict(self.currItem)
             cItem.update({'search_item':False, 'name':'category'}) 
