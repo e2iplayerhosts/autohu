@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 ###################################################
-# 2019-06-03 by Alec - auto.HU
+# 2019-06-09 by Alec - auto.HU
 #            by celeburdi - rtlmost.hu
 #            by McFly - logok
 ###################################################
-HOST_VERSION = "1.5"
+HOST_VERSION = "1.6"
 ###################################################
 # LOCAL import
 ###################################################
@@ -59,6 +59,8 @@ from Screens.MessageBox import MessageBox
 config.plugins.iptvplayer.autohu_rtlmost_login    = ConfigText(default = "", fixed_size = False)
 config.plugins.iptvplayer.autohu_rtlmost_password = ConfigText(default = "", fixed_size = False)
 config.plugins.iptvplayer.autohu_id = ConfigYesNo(default = False)
+config.plugins.iptvplayer.boxtipus = ConfigText(default = "", fixed_size = False)
+config.plugins.iptvplayer.boxrendszer = ConfigText(default = "", fixed_size = False)
 
 def GetConfigList():
     optionList = []
@@ -143,6 +145,8 @@ class AutosHU(CBaseHostClass):
         self.vivn = GetIPTVPlayerVerstion()
         self.porv = self.gits()
         self.pbtp = '-'
+        self.btps = config.plugins.iptvplayer.boxtipus.value
+        self.brdr = config.plugins.iptvplayer.boxrendszer.value
         self.ytp = YouTubeParser()
         self.loggedIn = False
         self.login = ''
@@ -152,6 +156,8 @@ class AutosHU(CBaseHostClass):
         self.defaultParams = {'header':self.HEADER, 'use_cookie': True, 'load_cookie': True, 'save_cookie': True, 'cookiefile': self.COOKIE_FILE}    
                             
     def listMainMenu(self, cItem):
+        if not self.ebbtit(): return
+        if self.btps != '' and self.brdr != '': self.pbtp = self.btps.strip() + ' - ' + self.brdr.strip()
         url_legfris = 'legfrissebb'
         desc_legfris = self.getdvdsz(url_legfris, 'auto.HU - v' + HOST_VERSION + '\n\nLegfrissebb autós adások, műsorok és információk gyűjtőhelye. Amennyiben egyes adások nem játszhatók le - NINCS ELÉRHETŐ LINK, akkor az adott műsor tartalomszolgáltatója megváltoztatta annak elérhetőségét. Ez nem az "auto.HU" lejátszó hibája!!!  Kérlek, hogy ezt vedd figyelembe...')
         url_mindentudo = 'auto_hu_mindentudo'
@@ -1921,6 +1927,17 @@ class AutosHU(CBaseHostClass):
                 urlTab.extend(tmpTab)
         urlTab.reverse()
         return urlTab
+        
+    def ebbtit(self):
+        try:
+            if '' == self.btps.strip() or '' == self.brdr.strip():
+                msg = 'A Set-top-Box típusát és a használt rendszer (image) nevét egyszer meg kell adni!\n\nA kompatibilitás és a megfelelő használat miatt kellenek ezek az adatok a programnak.\nKérlek, a helyes működéshez a valóságnak megfelelően írd be azokat.\n\nA "HU Telepítő" keretrendszerben tudod ezt megtenni.\n\nKilépek és megyek azt beállítani?'
+                ret = self.sessionEx.waitForFinishOpen(MessageBox, msg, type=MessageBox.TYPE_YESNO, default=True)
+                return False
+            else:
+                return True
+        except Exception:
+            return False
         
     def tryTologin(self):
         needLogin = False
